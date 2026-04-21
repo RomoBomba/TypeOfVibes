@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { FirstPersonController } from 'three-first-person-controller';
 import { GameScene } from './scenes/GameScene.js';
+import { AudioManager } from './AudioManager.js';
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -23,9 +24,10 @@ const controller = new FirstPersonController(camera, {
 
 const timer = new THREE.Timer();
 const gameScene = new GameScene(renderer, camera, controller);
+const audioManager = new AudioManager(); // ✅ Только один раз
 
 async function init() {
-    await gameScene.initialize();
+    await gameScene.initialize(); // ✅ Только один раз, снаружи animate
 
     function animate() {
         timer.update();
@@ -53,7 +55,9 @@ window.addEventListener('resize', () => {
 
 window.addEventListener('keydown', (e) => {
     if (e.code === 'KeyE') {
-        console.log('🔔 E pressed');
         gameScene.toggleSitOnBench();
+    }
+    if (e.code === 'KeyF') {
+        gameScene.toggleSky();
     }
 });

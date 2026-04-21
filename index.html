@@ -21,6 +21,7 @@
             pointer-events: none;
             z-index: 10;
             text-shadow: 1px 1px 3px black;
+            backdrop-filter: blur(5px);
         }
         #interaction-hint {
             position: absolute;
@@ -37,25 +38,90 @@
             opacity: 0;
             transition: opacity 0.3s;
             text-shadow: 1px 1px 2px black;
+            backdrop-filter: blur(5px);
         }
         #controls-hint {
             position: absolute;
             bottom: 30px;
             right: 30px;
-            color: rgba(255,255,255,0.7);
-            background: rgba(0,0,0,0.3);
+            color: rgba(255,255,255,0.8);
+            background: rgba(0,0,0,0.4);
             padding: 8px 12px;
             border-radius: 8px;
             font-size: 12px;
             pointer-events: none;
             z-index: 10;
+            backdrop-filter: blur(5px);
+        }
+
+        /* Стили для аудиоплеера */
+        #audio-player {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(8px);
+            padding: 12px 20px;
+            border-radius: 40px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            color: white;
+            z-index: 20;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        #audio-player button {
+            background: rgba(255,255,255,0.15);
+            border: none;
+            color: white;
+            font-size: 18px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        #audio-player button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        #track-info {
+            min-width: 150px;
+            font-size: 14px;
+        }
+        #volume-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #volume-slider {
+            width: 80px;
+            cursor: pointer;
+            accent-color: #ffaa66;
+        }
+        #play-pause {
+            font-size: 22px;
         }
     </style>
 </head>
 <body>
-<div id="info">🏔️ Type Of Vibes | WASD - ходить, E - сесть на скамейку</div>
+<div id="info">🏔️ Type Of Vibes | WASD - ходить | E - сесть | F - сменить фон</div>
 <div id="interaction-hint">Нажмите E, чтобы сесть на скамейку</div>
 <div id="controls-hint">🖱️ Кликните для управления взглядом | ESC для выхода</div>
+
+<!-- Блок аудиоплеера -->
+<div id="audio-player">
+    <button id="play-pause">▶️</button>
+    <button id="next-track">⏭️</button>
+    <div id="track-info">🎵 Загрузка...</div>
+    <div id="volume-control">
+        <span>🔊</span>
+        <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="0.5">
+    </div>
+</div>
 
 <script type="module" src="/src/main.js"></script>
 </body>
