@@ -3,13 +3,13 @@ export class AudioManager {
         this.audio = new Audio();
 
         this.playlist = [
-            { title: 'Love You To Death', file: 'public/audio/Type_O_Negative_-_Love_You_To_Death.mp3' },
-            { title: 'Be My Druidess', file: 'public/audio/Type_O_Negative_-_Be_My_Druidess.mp3' },
-            { title: 'Green Man', file: 'public/audio/Type_O_Negative_-_Green_Man.mp3' },
-            { title: 'Red Water', file: 'public/audio/Type_O_Negative_-_Red_Water.mp3' },
-            { title: 'My Girlfriend\'s Girlfriend', file: 'public/audio/Type_O_Negative_-_My_Girlfriends_Girlfriend.mp3' },
-            { title: 'Die With Me', file: 'public/audio/Type_O_Negative_-_Die_With_Me.mp3' },
-            { title: 'Burnt Flowers Fallen', file: 'public/audio/Type_O_Negative_-_Burnt_Flowers_Fallen.mp3' }
+            { title: 'Love You To Death', file: '/audio/Type_O_Negative_-_Love_You_To_Death.mp3' },
+            { title: 'Be My Druidess', file: '/audio/Type_O_Negative_-_Be_My_Druidess.mp3' },
+            { title: 'Green Man', file: '/audio/Type_O_Negative_-_Green_Man.mp3' },
+            { title: 'Red Water', file: '/audio/Type_O_Negative_-_Red_Water.mp3' },
+            { title: 'My Girlfriend\'s Girlfriend', file: '/audio/Type_O_Negative_-_My_Girlfriends_Girlfriend.mp3' },
+            { title: 'Die With Me', file: '/audio/Type_O_Negative_-_Die_With_Me.mp3' },
+            { title: 'Burnt Flowers Fallen', file: '/audio/Type_O_Negative_-_Burnt_Flowers_Fallen.mp3' }
         ];
 
         this.currentIndex = 0;
