@@ -24,10 +24,10 @@ const controller = new FirstPersonController(camera, {
 
 const timer = new THREE.Timer();
 const gameScene = new GameScene(renderer, camera, controller);
-const audioManager = new AudioManager(); // ✅ Только один раз
+const audioManager = new AudioManager();
 
 async function init() {
-    await gameScene.initialize(); // ✅ Только один раз, снаружи animate
+    await gameScene.initialize();
 
     function animate() {
         timer.update();

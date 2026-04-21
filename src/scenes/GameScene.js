@@ -36,13 +36,17 @@ export class GameScene {
     async initialize() {
         await this.setupSky();
         this.setupGround();
-        this.setupLights(); // Возвращаем освещение
+        this.setupLights();
         await this.loadBench();
 
         document.addEventListener('mousemove', this.onMouseMove);
-        this.setupUI();
+        document.addEventListener('pointerlockchange', () => {
+            if (!document.pointerLockElement && this.isSitting) {
+                this.standUp();
+            }
+        });
 
-        console.log('🏞️ Сцена готова');
+        this.setupUI();
     }
 
     setupUI() {
@@ -64,26 +68,6 @@ export class GameScene {
         document.body.appendChild(btn);
     }
 
-    // async toggleSky() {
-    //     this.currentHdrIndex = (this.currentHdrIndex + 1) % this.hdrList.length;
-    //     const hdrFile = this.hdrList[this.currentHdrIndex];
-    //
-    //     const rgbeLoader = new RGBELoader();
-    //     try {
-    //         const texture = await rgbeLoader.loadAsync(`textures/sky/${hdrFile}`);
-    //         texture.mapping = THREE.EquirectangularReflectionMapping;
-    //
-    //         if (this.skySphere) {
-    //             this.skySphere.material.map = texture;
-    //             this.skySphere.material.needsUpdate = true;
-    //         }
-    //
-    //         console.log(`🌅 Фон изменён на ${hdrFile}`);
-    //     } catch (error) {
-    //         console.error('Ошибка смены фона:', error);
-    //     }
-    // }
-
     async toggleSky() {
         this.currentHdrIndex = (this.currentHdrIndex + 1) % this.hdrList.length;
         const hdrFile = this.hdrList[this.currentHdrIndex];
@@ -98,36 +82,39 @@ export class GameScene {
                 this.skySphere.material.needsUpdate = true;
             }
 
-            // Опционально: меняем освещение под фон
             this.adjustLightingForSky(hdrFile);
-
-            console.log(`🌅 Фон изменён на ${hdrFile}`);
         } catch (error) {
             console.error('Ошибка смены фона:', error);
         }
     }
 
-// Новый метод для адаптации освещения под фон
     adjustLightingForSky(hdrFile) {
-        // Можно настроить яркость или цвет освещения под конкретный фон
         if (hdrFile.includes('night')) {
-            this.scene.children.forEach(child => {
-                if (child instanceof THREE.DirectionalLight) {
-                    child.intensity = 0.3;
-                }
-                if (child instanceof THREE.AmbientLight) {
-                    child.intensity = 0.2;
-                }
-            });
+            if (this.dirLight) {
+                this.dirLight.color.set(0xaaccff);
+                this.dirLight.intensity = 0.15;
+            }
+            if (this.ambientLight) {
+                this.ambientLight.color.set(0x223344);
+                this.ambientLight.intensity = 0.25;
+            }
+            if (this.backLight) {
+                this.backLight.color.set(0x446688);
+                this.backLight.intensity = 0.15;
+            }
         } else {
-            this.scene.children.forEach(child => {
-                if (child instanceof THREE.DirectionalLight) {
-                    child.intensity = 0.8;
-                }
-                if (child instanceof THREE.AmbientLight) {
-                    child.intensity = 0.5;
-                }
-            });
+            if (this.dirLight) {
+                this.dirLight.color.set(0xffeedd);
+                this.dirLight.intensity = 0.8;
+            }
+            if (this.ambientLight) {
+                this.ambientLight.color.set(0xffffff);
+                this.ambientLight.intensity = 0.5;
+            }
+            if (this.backLight) {
+                this.backLight.color.set(0xffaa66);
+                this.backLight.intensity = 0.3;
+            }
         }
     }
 
@@ -144,89 +131,48 @@ export class GameScene {
             });
             this.skySphere = new THREE.Mesh(skyGeometry, skyMaterial);
             this.scene.add(this.skySphere);
-
-            console.log('🌅 HDRI сфера создана (будет следовать за камерой)');
         } catch (error) {
             console.error('Ошибка загрузки HDRI:', error);
             this.scene.background = new THREE.Color(0x111122);
         }
     }
 
-    update(deltaTime) {
-        if (!this.benchLoaded) return;
-
-        // ** ВАЖНО: Привязываем сферу к камере **
-        if (this.skySphere) {
-            this.skySphere.position.copy(this.camera.position);
-        }
-
-        // Ограничение движения
-        const pos = this.camera.position;
-        const horizontalDist = Math.sqrt(pos.x * pos.x + pos.z * pos.z);
-        if (horizontalDist > this.worldRadius) {
-            const angle = Math.atan2(pos.z, pos.x);
-            pos.x = Math.cos(angle) * this.worldRadius;
-            pos.z = Math.sin(angle) * this.worldRadius;
-            this.camera.position.copy(pos);
-        }
-
-        if (this.isSitting) {
-            this.camera.position.copy(this.benchSitPosition);
-            this.controller.enabled = false;
-        }
-
-        const dist = this.camera.position.distanceTo(this.benchPosition);
-        this.nearBench = dist < this.interactionDistance;
-
-        if (this.hintElement) {
-            this.hintElement.style.opacity = (this.nearBench && !this.isSitting) ? '1' : '0';
-        }
-    }
-
     setupGround() {
-        // Прозрачная плоскость для коллизий (полностью невидимая)
         const groundGeo = new THREE.CircleGeometry(this.worldRadius + 0.5, 32);
         const groundMat = new THREE.MeshStandardMaterial({
             transparent: true,
             opacity: 0,
             side: THREE.DoubleSide,
-            visible: false // Полностью скрываем
+            visible: false
         });
         const ground = new THREE.Mesh(groundGeo, groundMat);
         ground.rotation.x = -Math.PI / 2;
         ground.position.y = 0;
         this.scene.add(ground);
-
-        console.log('👻 Невидимая земля создана');
     }
 
     setupLights() {
-        // Мягкий направленный свет для скамейки
-        const dirLight = new THREE.DirectionalLight(0xffeedd, 0.8);
-        dirLight.position.set(5, 10, 5);
-        dirLight.castShadow = true;
-        dirLight.shadow.mapSize.width = 1024;
-        dirLight.shadow.mapSize.height = 1024;
+        this.dirLight = new THREE.DirectionalLight(0xffeedd, 0.8);
+        this.dirLight.position.set(5, 10, 5);
+        this.dirLight.castShadow = true;
+        this.dirLight.shadow.mapSize.width = 1024;
+        this.dirLight.shadow.mapSize.height = 1024;
         const d = 10;
-        dirLight.shadow.camera.left = -d;
-        dirLight.shadow.camera.right = d;
-        dirLight.shadow.camera.top = d;
-        dirLight.shadow.camera.bottom = -d;
-        dirLight.shadow.camera.near = 1;
-        dirLight.shadow.camera.far = 30;
-        dirLight.shadow.bias = -0.0005;
-        this.scene.add(dirLight);
+        this.dirLight.shadow.camera.left = -d;
+        this.dirLight.shadow.camera.right = d;
+        this.dirLight.shadow.camera.top = d;
+        this.dirLight.shadow.camera.bottom = -d;
+        this.dirLight.shadow.camera.near = 1;
+        this.dirLight.shadow.camera.far = 30;
+        this.dirLight.shadow.bias = -0.0005;
+        this.scene.add(this.dirLight);
 
-        // Заполняющий свет
-        const fillLight = new THREE.AmbientLight(0xffffff, 0.5);
-        this.scene.add(fillLight);
+        this.ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        this.scene.add(this.ambientLight);
 
-        // Лёгкий тёплый свет сзади
-        const backLight = new THREE.PointLight(0xffaa66, 0.3);
-        backLight.position.set(-3, 2, -5);
-        this.scene.add(backLight);
-
-        console.log('💡 Освещение настроено');
+        this.backLight = new THREE.PointLight(0xffaa66, 0.3);
+        this.backLight.position.set(-3, 2, -5);
+        this.scene.add(this.backLight);
     }
 
     async loadBench() {
@@ -253,7 +199,6 @@ export class GameScene {
                 if (node.isMesh) {
                     node.castShadow = true;
                     node.receiveShadow = true;
-                    // Если материал слишком тёмный, немного осветляем
                     if (node.material) {
                         node.material.needsUpdate = true;
                     }
@@ -271,7 +216,6 @@ export class GameScene {
             );
 
             this.benchLoaded = true;
-            console.log('🪑 Скамейка загружена');
         } catch (err) {
             console.error('Ошибка загрузки скамейки:', err);
             this.createSimpleBench();
@@ -315,40 +259,46 @@ export class GameScene {
         this.camera.quaternion.setFromEuler(this.sitEuler);
     }
 
-    // update(deltaTime) {
-    //     if (!this.benchLoaded) return;
-    //
-    //     // Ограничение движения по кругу (коллизия)
-    //     const pos = this.camera.position;
-    //     const horizontalDist = Math.sqrt(pos.x * pos.x + pos.z * pos.z);
-    //     if (horizontalDist > this.worldRadius) {
-    //         const angle = Math.atan2(pos.z, pos.x);
-    //         pos.x = Math.cos(angle) * this.worldRadius;
-    //         pos.z = Math.sin(angle) * this.worldRadius;
-    //         this.camera.position.copy(pos);
-    //     }
-    //
-    //     if (this.isSitting) {
-    //         this.camera.position.copy(this.benchSitPosition);
-    //         this.controller.enabled = false;
-    //     }
-    //
-    //     const dist = this.camera.position.distanceTo(this.benchPosition);
-    //     this.nearBench = dist < this.interactionDistance;
-    //
-    //     if (this.hintElement) {
-    //         this.hintElement.style.opacity = (this.nearBench && !this.isSitting) ? '1' : '0';
-    //     }
-    // }
+    update(deltaTime) {
+        if (!this.benchLoaded) return;
+
+        if (this.skySphere) {
+            this.skySphere.position.copy(this.camera.position);
+        }
+
+        const pos = this.camera.position;
+        const horizontalDist = Math.sqrt(pos.x * pos.x + pos.z * pos.z);
+        if (horizontalDist > this.worldRadius) {
+            const angle = Math.atan2(pos.z, pos.x);
+            pos.x = Math.cos(angle) * this.worldRadius;
+            pos.z = Math.sin(angle) * this.worldRadius;
+            this.camera.position.copy(pos);
+        }
+
+        if (this.isSitting) {
+            this.camera.position.copy(this.benchSitPosition);
+            this.controller.enabled = false;
+        }
+
+        const dist = this.camera.position.distanceTo(this.benchPosition);
+        this.nearBench = dist < this.interactionDistance;
+
+        if (this.hintElement) {
+            this.hintElement.style.opacity = (this.nearBench && !this.isSitting) ? '1' : '0';
+        }
+    }
+
+    standUp() {
+        this.camera.position.copy(this.originalCameraPosition);
+        this.camera.quaternion.copy(this.originalCameraQuaternion);
+        this.controller.enabled = true;
+        this.isSitting = false;
+    }
 
     toggleSitOnBench() {
         if (this.isSitting) {
-            this.camera.position.copy(this.originalCameraPosition);
-            this.camera.quaternion.copy(this.originalCameraQuaternion);
-            this.controller.enabled = true;
-            this.isSitting = false;
+            this.standUp();
             document.exitPointerLock();
-            console.log('🚶 Встали');
         } else if (this.nearBench) {
             this.originalCameraPosition.copy(this.camera.position);
             this.originalCameraQuaternion.copy(this.camera.quaternion);
@@ -361,8 +311,6 @@ export class GameScene {
 
             this.isSitting = true;
             this.renderer.domElement.requestPointerLock();
-
-            console.log('🧘 Сели');
         }
     }
 }
