@@ -26,9 +26,12 @@ export class GameScene {
         this.benchLoaded = false;
 
         this.worldRadius = 7.0;
-        this.hdrList = ['sunset.hdr', 'mountain.hdr', 'kiara.hdr', 'hills.hdr', 'night.hdr'];
+        this.hdrList = ['sunset.hdr', 'mountain.hdr', 'hills.hdr', 'night.hdr', 'lake.hdr', 'clear_night.hdr'];
+        this.benchRotations = [180, 180, 96, 0, 0, 0];
         this.currentHdrIndex = 0;
         this.skySphere = null;
+
+        this.localSitOffset = new THREE.Vector3(0, 0.25, -0.3);
 
         this.onMouseMove = this.onMouseMove.bind(this);
     }
@@ -40,12 +43,6 @@ export class GameScene {
         await this.loadBench();
 
         document.addEventListener('mousemove', this.onMouseMove);
-        document.addEventListener('pointerlockchange', () => {
-            if (!document.pointerLockElement && this.isSitting) {
-                this.standUp();
-            }
-        });
-
         this.setupUI();
     }
 
@@ -68,9 +65,26 @@ export class GameScene {
         document.body.appendChild(btn);
     }
 
+    updateSitPosition() {
+        if (!this.benchModel) return;
+        const worldOffset = this.localSitOffset.clone();
+        worldOffset.applyQuaternion(this.benchModel.quaternion);
+        this.benchSitPosition.copy(this.benchModel.position).add(worldOffset);
+        if (this.isSitting) {
+            this.camera.position.copy(this.benchSitPosition);
+        }
+    }
+
+    rotateBenchToAngle(degrees) {
+        if (!this.benchModel) return;
+        this.benchModel.rotation.y = THREE.MathUtils.degToRad(degrees);
+        this.updateSitPosition();
+    }
+
     async toggleSky() {
         this.currentHdrIndex = (this.currentHdrIndex + 1) % this.hdrList.length;
         const hdrFile = this.hdrList[this.currentHdrIndex];
+        const rotation = this.benchRotations[this.currentHdrIndex];
 
         const rgbeLoader = new RGBELoader();
         try {
@@ -82,38 +96,126 @@ export class GameScene {
                 this.skySphere.material.needsUpdate = true;
             }
 
-            this.adjustLightingForSky(hdrFile);
+            this.adjustLightingForSky(this.currentHdrIndex);
+            this.rotateBenchToAngle(rotation);
         } catch (error) {
             console.error('Ошибка смены фона:', error);
         }
     }
 
-    adjustLightingForSky(hdrFile) {
-        if (hdrFile.includes('night')) {
+    adjustLightingForSky(index) {
+        const isHills = (index === 2);
+        const isNight = (index === 3);
+        const isLake = (index === 4);
+        const isClearNight = (index === 5);
+        const isSunset = (index === 0);
+
+        if (this.skySphere && this.skySphere.material && this.skySphere.material.map) {
+            if (isNight || isLake) {
+                this.skySphere.material.map.anisotropy = this.skySphere.material.map.anisotropy || 16;
+                this.scene.environmentIntensity = 0.25;
+            } else {
+                this.scene.environmentIntensity = 1.0;
+            }
+        }
+
+        if (isHills) {
+            if (this.dirLight) {
+                this.dirLight.color.set(0xccbbaa);
+                this.dirLight.intensity = 0.15;
+            }
+            if (this.ambientLight) {
+                this.ambientLight.color.set(0x443322);
+                this.ambientLight.intensity = 0.2;
+            }
+            if (this.backLight) {
+                this.backLight.color.set(0x665544);
+                this.backLight.intensity = 0.1;
+            }
+            if (this.fillLight) {
+                this.fillLight.color.set(0xffffff);
+                this.fillLight.intensity = 0.6;
+            }
+        } else if (isNight) {
+            if (this.dirLight) {
+                this.dirLight.intensity = 0;
+            }
+            if (this.ambientLight) {
+                this.ambientLight.color.set(0x0a0a10);
+                this.ambientLight.intensity = 0.05;
+            }
+            if (this.backLight) {
+                this.backLight.intensity = 0;
+            }
+            if (this.fillLight) {
+                this.fillLight.color.set(0x8899aa);
+                this.fillLight.intensity = 0.4;
+            }
+        } else if (isLake) {
+            if (this.dirLight) {
+                this.dirLight.intensity = 0;
+            }
+            if (this.ambientLight) {
+                this.ambientLight.color.set(0xffffff);
+                this.ambientLight.intensity = 0.1;
+            }
+            if (this.backLight) {
+                this.backLight.intensity = 0;
+            }
+            if (this.fillLight) {
+                this.fillLight.color.set(0xffffff);
+                this.fillLight.intensity = 0.45;
+            }
+        } else if (isClearNight) {
             if (this.dirLight) {
                 this.dirLight.color.set(0xaaccff);
                 this.dirLight.intensity = 0.15;
             }
             if (this.ambientLight) {
-                this.ambientLight.color.set(0x223344);
+                this.ambientLight.color.set(0x334455);
                 this.ambientLight.intensity = 0.25;
             }
             if (this.backLight) {
-                this.backLight.color.set(0x446688);
+                this.backLight.color.set(0x557788);
                 this.backLight.intensity = 0.15;
+            }
+            if (this.fillLight) {
+                this.fillLight.color.set(0xaaccff);
+                this.fillLight.intensity = 0.4;
+            }
+        } else if (isSunset) {
+            if (this.dirLight) {
+                this.dirLight.color.set(0xffeedd);
+                this.dirLight.intensity = 0.4;
+            }
+            if (this.ambientLight) {
+                this.ambientLight.color.set(0xffffff);
+                this.ambientLight.intensity = 0.3;
+            }
+            if (this.backLight) {
+                this.backLight.color.set(0xccaa88);
+                this.backLight.intensity = 0.15;
+            }
+            if (this.fillLight) {
+                this.fillLight.color.set(0xffeedd);
+                this.fillLight.intensity = 0.2;
             }
         } else {
             if (this.dirLight) {
                 this.dirLight.color.set(0xffeedd);
-                this.dirLight.intensity = 0.8;
+                this.dirLight.intensity = 0.5;
             }
             if (this.ambientLight) {
                 this.ambientLight.color.set(0xffffff);
-                this.ambientLight.intensity = 0.5;
+                this.ambientLight.intensity = 0.35;
             }
             if (this.backLight) {
                 this.backLight.color.set(0xffaa66);
-                this.backLight.intensity = 0.3;
+                this.backLight.intensity = 0.2;
+            }
+            if (this.fillLight) {
+                this.fillLight.color.set(0xffeedd);
+                this.fillLight.intensity = 0.3;
             }
         }
     }
@@ -123,6 +225,7 @@ export class GameScene {
         try {
             const texture = await rgbeLoader.loadAsync(`textures/sky/${this.hdrList[0]}`);
             texture.mapping = THREE.EquirectangularReflectionMapping;
+            texture.encoding = THREE.sRGBEncoding;
 
             const skyGeometry = new THREE.SphereGeometry(500, 64, 64);
             const skyMaterial = new THREE.MeshBasicMaterial({
@@ -131,6 +234,9 @@ export class GameScene {
             });
             this.skySphere = new THREE.Mesh(skyGeometry, skyMaterial);
             this.scene.add(this.skySphere);
+
+            this.scene.environment = texture;
+            this.scene.environmentIntensity = 1.0;
         } catch (error) {
             console.error('Ошибка загрузки HDRI:', error);
             this.scene.background = new THREE.Color(0x111122);
@@ -152,7 +258,7 @@ export class GameScene {
     }
 
     setupLights() {
-        this.dirLight = new THREE.DirectionalLight(0xffeedd, 0.8);
+        this.dirLight = new THREE.DirectionalLight(0xffeedd, 0.5);
         this.dirLight.position.set(5, 10, 5);
         this.dirLight.castShadow = true;
         this.dirLight.shadow.mapSize.width = 1024;
@@ -167,12 +273,16 @@ export class GameScene {
         this.dirLight.shadow.bias = -0.0005;
         this.scene.add(this.dirLight);
 
-        this.ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        this.ambientLight = new THREE.AmbientLight(0xffffff, 0.35);
         this.scene.add(this.ambientLight);
 
-        this.backLight = new THREE.PointLight(0xffaa66, 0.3);
+        this.backLight = new THREE.PointLight(0xffaa66, 0.2);
         this.backLight.position.set(-3, 2, -5);
         this.scene.add(this.backLight);
+
+        this.fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
+        this.fillLight.position.set(-5, 3, -5);
+        this.scene.add(this.fillLight);
     }
 
     async loadBench() {
@@ -193,7 +303,7 @@ export class GameScene {
             this.benchModel.position.x = this.benchPosition.x;
             this.benchModel.position.z = this.benchPosition.z;
             this.benchModel.position.y = this.benchPosition.y - newMin.y;
-            this.benchModel.rotation.y = Math.PI;
+            this.benchModel.rotation.y = THREE.MathUtils.degToRad(this.benchRotations[0]);
 
             this.benchModel.traverse(node => {
                 if (node.isMesh) {
@@ -206,15 +316,16 @@ export class GameScene {
             });
             this.scene.add(this.benchModel);
 
-            const center = newBbox.getCenter(new THREE.Vector3());
+            const center = new THREE.Vector3();
+            newBbox.getCenter(center);
             const maxY = newBbox.max.y;
-
-            this.benchSitPosition.set(
-                this.benchModel.position.x + center.x,
-                this.benchModel.position.y + maxY + 0.25,
-                this.benchModel.position.z + center.z - 0.3
+            this.localSitOffset.set(
+                center.x,
+                maxY + 0.25,
+                center.z - 0.3
             );
 
+            this.updateSitPosition();
             this.benchLoaded = true;
         } catch (err) {
             console.error('Ошибка загрузки скамейки:', err);
@@ -240,10 +351,11 @@ export class GameScene {
         seat.receiveShadow = true;
         group.add(seat);
         group.position.copy(this.benchPosition);
-        group.rotation.y = Math.PI;
+        group.rotation.y = THREE.MathUtils.degToRad(this.benchRotations[0]);
         this.benchModel = group;
         this.scene.add(group);
-        this.benchSitPosition.set(0, 0.9, -2.0);
+        this.localSitOffset.set(0, 0.7, -0.2);
+        this.updateSitPosition();
     }
 
     onMouseMove(event) {

@@ -9,7 +9,8 @@ export class AudioManager {
             { title: 'Red Water', file: '/audio/Type_O_Negative_-_Red_Water.mp3' },
             { title: 'My Girlfriend\'s Girlfriend', file: '/audio/Type_O_Negative_-_My_Girlfriends_Girlfriend.mp3' },
             { title: 'Die With Me', file: '/audio/Type_O_Negative_-_Die_With_Me.mp3' },
-            { title: 'Burnt Flowers Fallen', file: '/audio/Type_O_Negative_-_Burnt_Flowers_Fallen.mp3' }
+            { title: 'Burnt Flowers Fallen', file: '/audio/Type_O_Negative_-_Burnt_Flowers_Fallen.mp3' },
+            { title: 'Wolf Moon', file: '/audio/Type_O_Negative_-_Wolf_Moon.mp3' },
         ];
 
         this.currentIndex = 0;
